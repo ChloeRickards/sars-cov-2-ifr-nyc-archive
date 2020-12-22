@@ -1,27 +1,36 @@
-# Preamble
+# Notes ------------------------------------------------------------------------
+# This one requires that you have run "draw_ifrs.R" and "postprocess.R" on BOTH
+# the "raw" and "adj"settings, since these analyses compare both settings
+
+
+# Preamble ---------------------------------------------------------------------
 library(tidyverse)
 library(magrittr)
 library(ggplot2)
 library(lubridate)
 
-# FINAL IFR/SEROPREV TABLE
+# Final IFR/seroprevalence table -----------------------------------------------
+# This compares IFR/seroprevalence between raw and adjusted runs
 
 IFR_stats_adj <- readRDS("IFR_stats_adj.RDS")
 IFR_stats_raw <- readRDS("IFR_stats_raw.RDS")
-prev_est_age_adj <- readRDS("prev_est_age_adj.RDS")
-prev_est_age_raw <- readRDS("prev_est_age_raw.RDS")
+seroprevalence_adj <- readRDS("seroprevalence_adj.RDS")
+seroprevalence_raw <- readRDS("seroprevalence_raw.RDS")
+
 
 resultsTable <- 
   cbind('Age Class' = IFR_stats_adj$`Age class`) %>%
   cbind('Population' = IFR_stats_adj$Population) %>%
   cbind('Deaths' = IFR_stats_adj$Deaths) %>%
-  cbind('Seroprevalence (raw)' = c("NA", prev_est_age_raw$`% Seropositive (95% CI)`)) %>%
-  cbind('IFR (raw)' = c("NA", IFR_stats_raw$IFR)) %>%
-  cbind('Seroprevalence (adjusted with Pollan)' = prev_est_age_adj$`% Seropositive (95% CI)`) %>%
+  cbind('Seroprevalence (raw)' =  seroprevalence_raw) %>%
+  cbind('IFR (raw)' = IFR_stats_raw$IFR) %>%
+  cbind('Seroprevalence (adjusted with Pollan)' = seroprevalence_adj) %>%
   cbind('IFR (adjusted with Pollan)' = IFR_stats_adj$IFR)
 
-# IFR COMPARISON
 
+# IFR comparison ---------------------------------------------------------------
+# This compares the raw and adjusted version of our results against multiple
+# results from different countries. The CSV contains the results from other countries
 IFR_comparison <- read_csv("IFR_comparison.csv") 
 IFR_comparison=IFR_comparison[IFR_comparison$Dataset!="Italy",]
 
@@ -91,171 +100,3 @@ ggplot(IFR_comparison, aes(y=IFR, x=AgeMidpoint,col=Dataset)) +
 ggsave("ifr_comparison.png", width = 12, height = 15)
 
 #https://stackoverflow.com/questions/43577579/multiple-lines-multiple-error-bars-using-ggplot2-in-r
-
-# DAILY CASES AND DEATHS
-# Daily deaths are just confirmed here
-# May do combined when I do the IFR stats for combined
-# I chose to use confirmed deaths here because I'm doing IFR stats based on confirmed
-# Cases and Deaths truncated to dates of interest: 2020-03-01 to 2020-06-15
-
-delays_2plot <- readRDS("delays_2plot.RDS")
-
-daily_cases_all_ages <-read_csv("daily_cases_trunc.csv") %>%
-  select(DATE_OF_INTEREST, '7-day average')%>%
-  cbind(age_class = "all") %>%
-  cbind(var = "Cases (7-day average)")
-daily_cases_all_ages$DATE_OF_INTEREST <-as.Date(daily_cases_all_ages$DATE_OF_INTEREST, "%m/%d/%y")
-
-daily_deaths_all_ages <-read_csv("daily_deaths_trunc.csv") %>%
-  select(DATE_OF_DEATH, Confirmed) %>%
-  cbind(age_class = "all") %>%
-  cbind(var = "Deaths")
-daily_deaths_all_ages$DATE_OF_DEATH <-as.Date(daily_deaths_all_ages$DATE_OF_DEATH, "%m/%d/%y")
-
-daily_cases_by_age <- read_csv("NYCHealth_cumul_data.csv") %>%
-  filter(var == 'case_cumul') %>%
-  arrange(age_class, date)
-daily_vec = vector()
-# for each age class, take the difference of the two days
-for (i in 1:length(unique(daily_cases_by_age$age_class))){
-  c <- daily_cases_by_age %>%
-    filter(age_class == unique(daily_cases_by_age$age_class)[i])
-  for (j in 1:dim(c)[1]){
-    if (j == 1){
-      daily_vec <- append(daily_vec, 0)
-    } else{
-      daily_vec <- append(daily_vec,c$Total[j] - c$Total[j-1])
-    }
-  }
-}
-daily_cases_by_age <- daily_cases_by_age %>%
-  cbind(Daily = daily_vec) %>%
-  select(-Total) %>%
-  select(-var)
-daily_cases_by_age <- filter(daily_cases_by_age, daily_cases_by_age$date != "2020-03-23")
-
-daily_deaths_by_age <- read_csv("NYCHealth_cumul_data.csv") %>%
-  filter(var == 'death_cumul') %>%
-  arrange(age_class, date)
-daily_vec = vector()
-# for each age class, take the difference of the two days
-for (i in 1:length(unique(daily_deaths_by_age$age_class))){
-  c <- daily_deaths_by_age %>%
-    filter(age_class == unique(daily_deaths_by_age$age_class)[i])
-  for (j in 1:dim(c)[1]){
-    if (j == 1){
-      daily_vec <- append(daily_vec, 0)
-    } else{
-      daily_vec <- append(daily_vec,c$Total[j] - c$Total[j-1])
-    }
-  }
-}
-daily_deaths_by_age <- daily_deaths_by_age %>%
-  cbind(Daily = daily_vec) %>%
-  select(-Total) %>%
-  select(-var)
-daily_deaths_by_age <- filter(daily_deaths_by_age, daily_deaths_by_age$date != "2020-03-23")
-for (i in 1:dim(daily_deaths_by_age)[1]){
-  if (daily_deaths_by_age$Daily[i] <0){
-    daily_deaths_by_age$Daily[i] = 0
-  }
-}
-
-names(daily_deaths_all_ages)[names(daily_deaths_all_ages) == "DATE_OF_DEATH"] <- "Date"
-names(daily_deaths_all_ages)[names(daily_deaths_all_ages) == "Confirmed"] <- "DailyCount"
-names(daily_cases_all_ages)[names(daily_cases_all_ages) == "DATE_OF_INTEREST"] <- "Date"
-names(daily_cases_all_ages)[names(daily_cases_all_ages) == "7-day average"] <- "DailyCount"
-
-timeline <- daily_deaths_all_ages %>%
-  rbind(daily_cases_all_ages) %>%
-  select(-age_class)
-
-serosurvey_start <- as.Date("2020-04-19")
-serosurvey <- data.frame(Date = serosurvey_start + 0:9, DailyCount = rep(1500, 10), var = "Serosurvey Dates (04/19/20 - 04/28/20")
-
-# days from infection to seroconversion
-# What I'm going to do: 1) Take middle 95% of cdf, 2) convert to days, 3) convert to dates, using days before 4/23 (midpoint)
-
-inf2sero <- delays_2plot %>%
-  filter(var == "i2sero") %>%
-  filter(cdf.mean > 0.05) #this gets flipped
-
-
-infection_start = round(inf2sero$days[1])
-
-infection_midpoint <- inf2sero %>%
-  filter(cdf.mean < 0.51) %>%
-  filter(cdf.mean > 0.49)
-infection_midpoint = round(mean(infection_midpoint$days))
-
-infection_end = round(inf2sero$days[length(inf2sero$days)])
-
-# taking deaths from midpoint of infections
-inf2death <- delays_2plot %>%
-  filter(var == "i2d") %>%
-  filter(cdf.mean < 0.95)
-
-death_start = round(inf2death$days[1])
-death_midpoint <- inf2death %>%
-  filter(cdf.mean < 0.51) %>%
-  filter(cdf.mean > 0.49)
-death_midpoint = round(mean(death_midpoint$days))
-death_end = round(inf2death$days[length(inf2death$days)])
-
-serosurvey_midpoint <- as.Date("2020-04-23")
-infection <- data.frame(Date = serosurvey_midpoint + -infection_start:-(infection_end+3), DailyCount = rep(1400, length(infection_start:(infection_end+3))), var = "Estimated Dates of Infection (03/01/2020 - 04/14/20)")
-infection_midpoint_day <- data.frame(Date = serosurvey_midpoint + -infection_midpoint, DailyCount = 1400, var = "Estimated Infection Time Period Midpoint")
-deaths <- data.frame(Date = infection_midpoint_day$Date + -24:death_end, DailyCount = rep(1600, length(-24:death_end)), var = "Estimated Dates of Death (03/14/20 - 05/26/20)")
-deaths_midpoint_day <- data.frame(Date = infection_midpoint_day$Date + death_midpoint, DailyCount = 1600, var = "Probable Death Time Period Midpoint")
-
-timeline <- timeline %>%
-  rbind(serosurvey) %>%
-  rbind(infection) %>%
-  #rbind(deaths) %>%
-  rename(Legend = var)
-
-#https://stackoverflow.com/questions/17996410/ggplot-specific-thick-line
-
-ggplot(timeline, aes(x=Date,y = DailyCount)) +
-  geom_line(aes(color = Legend, size = Legend))+
-  theme_bw()+
-  theme(axis.title=element_text(size=25),legend.position = c(.7, .8),
-        axis.text=element_text(size=25),legend.text=element_text(size=18),
-        legend.title=element_text(size=20))+
-  scale_size_manual(values = c(1, 1, 3, 3, 3))+
-  scale_color_manual(values=c("#61ddff", "#2051e3", "#de2509", "#edc01c"))+
-  scale_x_date(date_breaks = "1 month", date_labels = "%b")+
-  geom_point(aes(x = serosurvey_midpoint, y = 1500), color = "black", size = 5)+
-  xlab("Date")+
-  ylab("Case/Death Count")
-  
-ggsave("nyc_timeline.png", width = 15, height = 12)
-
-
-# SUPPLEMENTAL FIG - AGE TREND DATA
-
-lapply(c("ggplot2","ggthemes","dplyr"),require,character.only=T) #load multiple packages
-m=read.csv("Seroprev_by_age.csv")
-m=as.data.frame(group_by(m,Dataset) %>%
-                  mutate(SeroprevN=Seroprev/mean(Seroprev)))
-
-ggplot(m, aes(y=SeroprevN, x=AgeMidpoint,col=Dataset)) +
-  geom_line(aes(group = Dataset))+theme_bw()+
-  geom_point(size=4)+
-  theme(axis.title=element_text(size=25),legend.position = c(.6, .20),
-        axis.text=element_text(size=25),legend.text=element_text(size=15),
-        legend.title=element_text(size=15))+
-  xlab("Age Group midpoint")
-ylab("Relative Seroprevalence")
-
-ggsave(m, filename = "ifr_comparison.png", width = 8, height = 4)
-
-
-# Age fit
-age_trend_data =read.csv("serop_age_spain.csv") # this reads the file
-age_trend_data = age_trend_data[age_trend_data$age_midpoint>45,] #this selects for age groups over 45
-age_sero_fit=lm(IA~age_midpoint+I(age_midpoint^2),data=age_trend_data);summary(age_sero_fit) # fits a line to the data using a linear model; summary of fit
-age_trend_data$fitted=fitted(age_sero_fit) # either here or on very end - adds a column to age_trend_data of fitted IA values - basically I'll tack on a fitted column onto the serodata and use that
-age_trend_data$scale=age_trend_data$fitted/mean(age_trend_data$IA[age_trend_data$age_midpoint<70]) #either here or on very end -- adds a column for scale, not sure what scale does tho
-plot(IA~age_midpoint,data=age_trend_data)
-lines(fitted(age_sero_fit)~age_trend_data$age_midpoint) # these last two lines to visualize

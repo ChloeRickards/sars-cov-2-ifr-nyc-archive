@@ -1,19 +1,6 @@
-#' @title Get weighted sample for each age class
-#' @description Take a population-weighted draw of a desired age class
-#' 
-#' @param draws long list of seropos, age_class, and pop, including multiple age classes to be sampled from
-#' @param n_post number of posterior samples
-#' @param new_age_class single variable (string) containing title of the output age class
-#' 
-#' @return vector of combined and weighted age class sample
-#' 
-getWeightedDraws <- function(draws, n_post, new_age_class) {
-  probs <- draws$pop/(sum(unique(draws$pop))*n_post)
-  weighted_draws <- sample(draws$seropos, n_post, prob = probs)
-  weighted_draws[weighted_draws < 0] <- 0
-  res <- data.frame(age_class = new_age_class, seropos = weighted_draws, sim = 1:n_post, pop = (sum(unique(draws$pop))))
-  return(res)
-}
+# DESCRIPTION
+# This file contains essential functions for the "draw_ifrs.R" file
+
 
 #' @title Compute PDF or CDF of delay
 #' @description Compute PDF or CDF of lognormal delays 

@@ -1,0 +1,47 @@
+READ ME
+
+This is the code associated with Rickards & Kilpatrick 2020.
+
+If you wish to replcate the results, run the files in the following order:
+1. draw_ifrs.R
+- This creates the seroprevalence draws and runs the statistical test that generates the IFTs
+2. postprocess.R
+- This processes the IFR draws into results, and provides graphs of the delay distributions, epidata, and timeline. You need to run "draw_ifrs.R" before you run this one.
+3. additional_postprocess.R
+- This compares multiple runs of the processed IFR code. You need to run "draw_ifrs.R" AND "postprocess.R" for adjusted and raw before you run this one.
+
+Other files in here include:
+
+- Data files
+	- daily_cases_trunc.csv
+	- daily_deaths_trunc.csv
+	- IFR_comparison.csv
+	- NYC_pop_age_total.csv
+	- NYCHealth_cumul_data.csv
+	- serop_age_spain.csv
+	- Seroprev_by_age.csv
+	- serosurvey_by_age_draws.csv
+
+- Function files
+	- ifr_betabinomial.stan
+	- stanfit_file
+	- utils.R
+
+
+You may see more files appear in your folder. These contain data objects or figures that are generated in the code. These files include:
+
+- age_stratified_IFRs_"suffix".rds - this contains all of the IFRs estimations, not yet processed, after it's gone through the stan model
+- data_setup.rda - this carries data over from "draw_ifrs" to "postprocess"
+- delay_dist.png - graph of delay distributions, generated in "postprocess"
+- epidata.png - graph of cases and deaths, generated in "postprocess"
+- ifr_comparison.png - graph of IFRs compared against each other, generated in "additional_postprocess"
+- ifr_posteriors_"suffix" - histogram of IFR posterior draws
+- IFR_stats_"suffix".rds - this contains the processed IFR data, ready to be compared against multiple runs in "additional_postprocess"
+- IFRs_pvals_"suffix".tex - LaTeX output of processed IFRs
+- nyc_timeline.png - epidata graphed against the timeline of the serosurvey and proposed infection times
+- seroprevalence_"suffix".tex - contains data of seroprevalences after they've been manipulated in "draws_ifrs", ready to be passed to "additional_postprocess"
+
+
+If you are running this code in RStudio, you may come across an error somewhere along the lines of "unknown or uninitialised column: 'var' . This is a glitch in RStudio and tibble, and doesn't require any action. For more information, see this Stack Overflow thread:
+
+https://stackoverflow.com/questions/39041115/fixing-a-multiple-warning-unknown-column

@@ -1,6 +1,6 @@
 READ ME
 
-This is the code associated with Rickards & Kilpatrick 2020.
+This is the code associated with the preprint for Rickards & Kilpatrick 2020. The updated version can be found at ChloeRickards/sars-cov-2-ifr-nyc
 
 If you wish to replcate the results, run the files in the following order:
 1. draw_ifrs.R
